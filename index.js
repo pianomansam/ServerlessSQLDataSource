@@ -22,6 +22,8 @@ class SQLDataSource extends DataSource {
 
     this.db = knex({ client: 'mysql', debug: true });
 
+    this.defaultTTL = config.defaultTTL;
+
     this.mysql = serverlessMysql({
       config: {
         ...config.connection,
@@ -91,24 +93,33 @@ class SQLDataSource extends DataSource {
     return this._execute(knexInstance);
   }
 
-  executeCachedQuery(knexInstance) {
-    const cacheKey = crypto
+  createCacheKey(s) {
+    return crypto
       .createHash('sha1')
-      .update(knexInstance.toString())
+      .update(s)
       .digest('base64');
+  }
 
-    return this.cache.get(cacheKey).then(entry => {
-      if (entry) return Promise.resolve(JSON.parse(entry));
+  async executeCachedQuery(knexInstance) {
+    const cacheKey = this.createCacheKey(knexInstance.toString());
 
-      return this._execute(knexInstance).then(rows => {
-        if (rows) {
-          this.cache.set(cacheKey, JSON.stringify(rows), {
-            ttl: knexInstance.useCache(),
-          });
-        }
+    const entry = await this.cache.get(cacheKey);
 
-        return Promise.resolve(rows);
-      });
+    if (entry) return JSON.parse(entry);
+
+    const rows = await this._execute(knexInstance);
+
+    if (rows) {
+      await this.updateCache(knexInstance, rows);
+    }
+
+    return rows;
+  }
+
+  async updateCache(knexInstance, rows, force = false) {
+    const cacheKey = this.createCacheKey(knexInstance.toString());
+    await this.cache.set(cacheKey, JSON.stringify(rows), {
+      ttl: force ? this.defaultTTL : knexInstance.useCache(),
     });
   }
 }
