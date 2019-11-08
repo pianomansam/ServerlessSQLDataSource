@@ -1,4 +1,4 @@
-# SQLDataSource
+# ServerlessSQLDataSource
 
 This package combines the power of [Knex] with the ease of use of [Apollo DataSources].
 
@@ -20,7 +20,7 @@ Read more below about getting set up and customizing the cache controls.
 
 ### Installation
 
-To install SQLDataSource: `npm i datasource-sql`
+To install ServerlessSQLDataSource: `npm i datasource-sql`
 
 ### Usage
 
