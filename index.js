@@ -27,7 +27,6 @@ class SQLDataSource extends DataSource {
     this.mysql = serverlessMysql({
       config: {
         ...config.connection,
-        debug: true,
       },
       onConnect: () => {
         console.log('onConnect');
