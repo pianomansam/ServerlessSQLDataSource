@@ -5,7 +5,6 @@ const { DataSource } = require('apollo-datasource');
 const { InMemoryLRUCache } = require('apollo-server-caching');
 const knex = require('knex');
 const knexTinyLogger = require('knex-tiny-logger').default;
-const serverlessMysql = require('serverless-mysql');
 
 const { DEBUG } = process.env;
 
@@ -14,6 +13,10 @@ let hasLogger = false;
 class SQLDataSource extends DataSource {
   constructor(config) {
     super();
+
+    if (typeof config.mysql === 'undefined') {
+      throw Error('You must define a mysql option in SQLDataSource');
+    }
 
     // eslint-disable-next-line no-unused-expressions
     this.context;
@@ -24,32 +27,7 @@ class SQLDataSource extends DataSource {
 
     this.defaultTTL = config.defaultTTL;
 
-    this.mysql = serverlessMysql({
-      config: {
-        ...config.connection,
-      },
-      onConnect: () => {
-        console.log('onConnect');
-      },
-      onKill: threadId => {
-        console.log('onKill', threadId);
-      },
-      onClose: () => {
-        console.log('onClose');
-      },
-      onConnectError: e => {
-        console.log(`onConnectError: ${e.code}`);
-      },
-      onError: e => {
-        console.log(`onError: ${e.code}`);
-      },
-      onKillError: e => {
-        console.log(`onKillError: ${e.code}`);
-      },
-      onRetry: (err, retries, delay, type) => {
-        console.log('onRetry', { err, retries, delay, type });
-      },
-    });
+    this.mysql = config.mysql;
 
     if (!this.db.cache) {
       knex.QueryBuilder.extend('cache', function cache(ttl) {
